@@ -59,9 +59,27 @@ forge script script/DeploySaintDurbin.s.sol:DeploySaintDurbin \
 
 ### 4. Send coldkey_swap extrinsic
 
-There is no such command in the btcli, need use the polkadot js or apps.
+Get the SS58 address of contract, then use it as new coldkey
 
 ```bash
+cd scripts
+npm install  # Install dependencies if not already done
+node convert-h160-to-ss58.js $DEPLOYER_ADDRESS
+# output like,
+Contract Address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+SS58 Address is: 5FBpj1M73tNRZ8qWW5nGFYnUQgZ5SdrBPw5j2VUebmL6UsZ7
+```
+
+Btcli command to send swap-coldkey extrinsic.
+
+```bash
+btcli wallet swap-coldkey --new-coldkey 5FBpj1M73tNRZ8qWW5nGFYnUQgZ5SdrBPw5j2VUebmL6UsZ7
+```
+
+Duration defined in the rust code.
+
+```bash
+
 pub const InitialColdkeySwapScheduleDuration: BlockNumber = 5 * 24 * 60 * 60 / 12; // 5 days
 pub fn schedule_swap_coldkey(
    origin: OriginFor<T>,
