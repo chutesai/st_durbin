@@ -3,38 +3,9 @@
 // Standalone script to generate SS58 public key from an EVM address
 // Usage: node generate-ss58-key.js <eth-address> [nonce]
 
-import { blake2AsU8a, encodeAddress } from "@polkadot/util-crypto";
-import { hexToU8a } from "@polkadot/util";
+import { encodeAddress } from "@polkadot/util-crypto";
 import { getAddress } from "ethers";
-
-/**
- * Calculates the Substrate-compatible public key (bytes32) from an EVM H160 address.
- * @param {string} ethAddress - The H160 EVM address (e.g., "0x123...").
- * @returns {Uint8Array} The 32-byte public key.
- */
-function convertH160ToPublicKey(ethAddress) {
-  const prefix = "evm:";
-  const prefixBytes = new TextEncoder().encode(prefix);
-  const addressBytes = hexToU8a(
-    ethAddress.startsWith("0x") ? ethAddress : `0x${ethAddress}`
-  );
-  const combined = new Uint8Array(prefixBytes.length + addressBytes.length);
-
-  combined.set(prefixBytes);
-  combined.set(addressBytes, prefixBytes.length);
-
-  return blake2AsU8a(combined); // This is a 32-byte hash
-}
-
-/**
- * Helper to get the SS58 public key as a hex string
- * @param {string} ethAddress - The H160 EVM address
- * @returns {string} The SS58 public key as a hex string
- */
-function convertH160ToPublicKeyHex(ethAddress) {
-  const pubKeyBytes = convertH160ToPublicKey(ethAddress);
-  return "0x" + Buffer.from(pubKeyBytes).toString("hex");
-}
+import { convertH160ToPublicKeyHex } from "./address-utils.js";
 
 // Main execution
 async function main() {
@@ -53,7 +24,7 @@ async function main() {
 
   console.log(`Contract Address: ${ethAddress}`);
 
-  const ss58PublicKeyHex = convertH160ToPublicKeyHex(ethAddress);
+  const ss58PublicKeyHex = await convertH160ToPublicKeyHex(ethAddress);
   const ss58Address = encodeAddress(ss58PublicKeyHex);
   console.log(`SS58 Address is: ${ss58Address}`);
 }
