@@ -57,6 +57,11 @@ forge script script/DeploySaintDurbin.s.sol:DeploySaintDurbin \
   --verify
 ```
 
+Then just update the initial principal locked manually.
+```bash
+cast send $DEPLOYED_ADDRESS "updatePrincipalLocked()" --rpc-url $RPC_URL --private-key $PRIVATE_KEY --legacy
+```
+
 ### 4. Send coldkey_swap extrinsic
 
 Get the SS58 address of contract, then use it as new coldkey
@@ -64,7 +69,7 @@ Get the SS58 address of contract, then use it as new coldkey
 ```bash
 cd scripts
 npm install  # Install dependencies if not already done
-node convert-h160-to-ss58.js $DEPLOYER_ADDRESS
+node convert-h160-to-ss58.js $DEPLOYED_ADDRESS
 # output like,
 Contract Address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
 SS58 Address is: 5FBpj1M73tNRZ8qWW5nGFYnUQgZ5SdrBPw5j2VUebmL6UsZ7
@@ -98,7 +103,7 @@ get the SS58 public key from contract address
 ```bash
 cd scripts
 npm install  # Install dependencies if not already done
-node convert-h160-to-public-key.js $DEPLOYER_ADDRESS
+node convert-h160-to-public-key.js $DEPLOYED_ADDRESS
 # output like, a 32 bytes hex string
 SS58 Public Key (bytes32): 0xdbb1da614802ea83f7b0fd97279204316cdc1fb62386d44c4fb0b3489a7657c9
 ```

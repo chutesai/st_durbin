@@ -89,7 +89,8 @@ contract DeploySaintDurbin is Script {
 
         // Log deployment result
         console.log("SaintDurbin deployed at:", address(saintDurbin));
-        console.log("Initial principal locked:", saintDurbin.principalLocked());
+	/*
+        //console.log("Initial principal locked:", saintDurbin.principalLocked());
 
         // Get current validator info
         (bytes32 hotkey, uint16 uid, bool isValid) = saintDurbin
@@ -119,5 +120,6 @@ contract DeploySaintDurbin is Script {
         console.log("NetUID:", saintDurbin.netuid());
 
         console.log("\nDeployment complete! Contract is now fully immutable.");
+       */
     }
 }

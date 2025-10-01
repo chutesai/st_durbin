@@ -87,6 +87,7 @@ contract SaintDurbin {
         uint256 amount
     );
     event SS58PublicKeySet(bytes32 indexed newKey);
+    event PrincipalUpdated(uint256 newPrincipal);
     event PrincipalUpdatedAfterAggregation(
         uint256 amount,
         uint256 newPrincipal
@@ -182,7 +183,7 @@ contract SaintDurbin {
         lastTransferBlock = block.number;
 
         // Get initial balance and set as principal
-        principalLocked = _getStakedBalanceHotkey(currentValidatorHotkey);
+        principalLocked = 0; //_getStakedBalanceHotkey(currentValidatorHotkey);
     }
 
     // ========== Core Functions ==========
@@ -201,6 +202,16 @@ contract SaintDurbin {
         thisSs58PublicKey = _thisSs58PublicKey;
         ss58PublicKeySet = true;
         emit SS58PublicKeySet(_thisSs58PublicKey);
+    }
+
+     /**
+     * @notice Update the principalLocked amount without any transfers/etc. Useful
+     * primarily for initial principalLocked setting since on deployment the staked
+     * amount will be zero (until coldkey swap).
+     */
+    function updatePrincipalLocked () external onlyEmergencyOperator {
+        principalLocked = _getStakedBalanceHotkey(currentValidatorHotkey);
+        emit PrincipalUpdated(principalLocked);
     }
 
     /**
@@ -224,6 +235,8 @@ contract SaintDurbin {
         // Or stake is moved to other account
         if (currentBalance <= principalLocked) {
             lastTransferBlock = block.number;
+            principalLocked = currentBalance;
+            lastPaymentAmount = 0;
             return;
         }
 
@@ -250,6 +263,8 @@ contract SaintDurbin {
 
         if (availableYield < EXISTENTIAL_AMOUNT) {
             lastTransferBlock = block.number;
+            principalLocked = currentBalance;
+            lastPaymentAmount = 0;
             return;
         }
 
