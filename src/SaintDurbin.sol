@@ -7,7 +7,7 @@ import {IMetagraph, IMETAGRAPH_ADDRESS} from "./interfaces/IMetagraph.sol";
 /**
  * @title SaintDurbin
  * @notice Patron Saint of Bittensor - With Manual Validator Switching
- * @dev Distributes staking rewards to recipients while preserving the principal amount
+ * @dev Distributes staking rewards to recipient while preserving the principal amount
  * @dev Validator switching must be done manually by emergency operator
  */
 contract SaintDurbin {
@@ -32,13 +32,12 @@ contract SaintDurbin {
     // Total hotkey alpha
     uint256 public totalHotkeyAlpha;
 
-    // Recipients
+    // Recipient
     struct Recipient {
         bytes32 coldkey;
-        uint256 proportion; // Basis points (out of 10,000)
     }
 
-    Recipient[] public recipients;
+    Recipient public recipient;
 
     // Tracking
     uint256 public principalLocked;
@@ -62,8 +61,7 @@ contract SaintDurbin {
     event StakeTransferred(uint256 totalAmount, uint256 newBalance);
     event RecipientTransfer(
         bytes32 indexed coldkey,
-        uint256 amount,
-        uint256 proportion
+        uint256 amount
     );
     event PrincipalDetected(uint256 amount, uint256 totalPrincipal);
     event EmergencyDrainExecuted(bytes32 indexed drainAddress, uint256 amount);
@@ -97,8 +95,6 @@ contract SaintDurbin {
     error NotEmergencyOperator();
     error InvalidAddress();
     error InvalidHotkey();
-    error InvalidProportion();
-    error ProportionsMismatch();
     error TransferTooSoon();
     error NoBalance();
     error ReentrancyGuard();
@@ -139,17 +135,13 @@ contract SaintDurbin {
         uint16 _validatorUid,
         bytes32 _thisSs58PublicKey,
         uint16 _netuid,
-        bytes32[] memory _recipientColdkeys,
-        uint256[] memory _proportions
+        bytes32[] memory _recipientColdkey
     ) {
         if (_emergencyOperator == address(0)) revert InvalidAddress();
         if (_drainAddress == address(0)) revert InvalidAddress();
         if (_drainSs58Address == bytes32(0)) revert InvalidAddress();
         if (_validatorHotkey == bytes32(0)) revert InvalidHotkey();
         if (_thisSs58PublicKey == bytes32(0)) revert InvalidAddress();
-        if (_recipientColdkeys.length != _proportions.length)
-            revert ProportionsMismatch();
-        if (_recipientColdkeys.length != 16) revert ProportionsMismatch();
 
         emergencyOperator = _emergencyOperator;
         drainSs58Address = _drainSs58Address;
@@ -163,27 +155,15 @@ contract SaintDurbin {
         metagraph = IMetagraph(IMETAGRAPH_ADDRESS);
         drainAddress = _drainAddress;
 
-        // Validate proportions sum to 10000
-        uint256 totalProportions = 0;
-        for (uint256 i = 0; i < _proportions.length; i++) {
-            if (_recipientColdkeys[i] == bytes32(0)) revert InvalidAddress();
-            if (_proportions[i] == 0) revert InvalidProportion();
-            totalProportions += _proportions[i];
-
-            recipients.push(
-                Recipient({
-                    coldkey: _recipientColdkeys[i],
-                    proportion: _proportions[i]
-                })
-            );
-        }
-        if (totalProportions != BASIS_POINTS) revert ProportionsMismatch();
-
         // Initialize tracking
         lastTransferBlock = block.number;
 
-        // Get initial balance and set as principal
-        principalLocked = 0; //_getStakedBalanceHotkey(currentValidatorHotkey);
+        // Set recipient.
+        if (_recipientColdkey == bytes32(0)) revert InvalidAddress();
+        recipient = Recipient({coldkey: _recipientColdkey});
+
+        // Principal on creation is set to zero, you must manually set the principal amount after deployment.
+        principalLocked = 0;
     }
 
     // ========== Core Functions ==========
@@ -215,7 +195,7 @@ contract SaintDurbin {
     }
 
     /**
-     * @notice Execute daily yield distribution to all recipients
+     * @notice Execute daily yield distribution to recipient.
      * @dev Can be called by anyone when conditions are met
      * @dev Does NOT automatically check validator status
      */
@@ -269,59 +249,34 @@ contract SaintDurbin {
         }
 
         // Calculate and execute transfers
-        uint256 totalTransferred = 0;
-        uint256 remainingYield = availableYield;
-
-        uint256 recipientsLength = recipients.length;
-
-        // Gas optimization - cache recipients length
-        for (uint256 i = 0; i < recipientsLength; i++) {
-            uint256 recipientAmount;
-
-            // Improved precision handling for last recipient
-            if (i == recipientsLength - 1) {
-                // Give remaining amount to last recipient to avoid dust
-                recipientAmount = remainingYield;
-            } else {
-                recipientAmount =
-                    (availableYield * recipients[i].proportion) /
-                    BASIS_POINTS;
-                remainingYield -= recipientAmount;
-            }
-
-            if (recipientAmount > 0) {
-                (bool success, ) = address(staking).call(
-                    abi.encodeWithSelector(
-                        IStaking.transferStake.selector,
-                        recipients[i].coldkey,
-                        currentValidatorHotkey,
-                        netuid,
-                        netuid,
-                        recipientAmount
-                    )
-                );
-                if (success) {
-                    totalTransferred += recipientAmount;
-                    emit RecipientTransfer(
-                        recipients[i].coldkey,
-                        recipientAmount,
-                        recipients[i].proportion
-                    );
-                } else {
-                    emit TransferFailed(
-                        recipients[i].coldkey,
-                        recipientAmount,
-                        "Transfer failed"
-                    );
-                }
-            }
+        (bool success, ) = address(staking).call(
+            abi.encodeWithSelector(
+                IStaking.transferStake.selector,
+                recipient.coldkey,
+                currentValidatorHotkey,
+                netuid,
+                netuid,
+                availableYield
+            )
+        );
+        if (success) {
+            emit RecipientTransfer(
+                recipient.coldkey,
+                availableYield
+            );
+        } else {
+            emit TransferFailed(
+                recipient.coldkey,
+                availableYield,
+                "Transfer failed"
+            );
         }
 
         // Update tracking - get balance BEFORE updating state to prevent reentrancy issues
         uint256 newBalance = _getStakedBalanceHotkey(currentValidatorHotkey);
         principalLocked = newBalance;
         lastTransferBlock = block.number;
-        lastPaymentAmount = totalTransferred;
+        lastPaymentAmount = availableYield;
 
         emit StakeTransferred(totalTransferred, newBalance);
     }
@@ -730,48 +685,13 @@ contract SaintDurbin {
     }
 
     /**
-     * @notice Get the number of recipients
-     * @return The total number of recipients
-     */
-    function getRecipientCount() external view returns (uint256) {
-        return recipients.length;
-    }
-
-    /**
      * @notice Get recipient details by index
      * @param index The recipient index
      * @return coldkey The recipient's coldkey
-     * @return proportion The recipient's proportion in basis points
      */
-    function getRecipient(
-        uint256 index
-    ) external view returns (bytes32 coldkey, uint256 proportion) {
-        require(index < recipients.length, "Invalid index");
-        Recipient memory recipient = recipients[index];
-        return (recipient.coldkey, recipient.proportion);
-    }
-
-    /**
-     * @notice Get all recipients in a single call
-     * @dev Gas-efficient way to retrieve all recipients
-     * @return coldkeys Array of recipient coldkeys
-     * @return proportions Array of recipient proportions
-     */
-    function getAllRecipients()
-        external
-        view
-        returns (bytes32[] memory coldkeys, uint256[] memory proportions)
-    {
-        uint256 length = recipients.length;
-        coldkeys = new bytes32[](length);
-        proportions = new uint256[](length);
-
-        for (uint256 i = 0; i < length; i++) {
-            coldkeys[i] = recipients[i].coldkey;
-            proportions[i] = recipients[i].proportion;
-        }
-
-        return (coldkeys, proportions);
+    function getRecipient() external view returns (bytes32 coldkey) {
+        Recipient memory recipient = recipient;
+        return (recipient.coldkey);
     }
 
     /**
