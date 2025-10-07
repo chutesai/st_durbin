@@ -4,6 +4,18 @@ This guide explains how to deploy the SaintDurbin contract with the correct SS58
 
 ## Pre-Deployment Steps
 
+### 0. Prepare EVM wallets
+
+You'll need an emergency operator wallet, and an emergency drain target wallet. You probably want both to be very, very secure, although the emergency operator needs to run fairly often to do executeTransfer and such, so it still needs to be accessible.
+
+Simple example with cast:
+```
+$ cast wallet new
+Successfully created new keypair.
+Address:     0xEe453A12f277CD0DfE374EFDD6d5ec68144fe327
+Private key: 0x90bfdaf84317da5c9b9e5344a02744769a7493578505ea5f09e6dae05767d0eb
+```
+
 ### 1. Prepare coldkey
 
 Install the btcli, to create coldkey.
