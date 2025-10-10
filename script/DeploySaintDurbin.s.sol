@@ -14,10 +14,7 @@ contract DeploySaintDurbin is Script {
         uint16 validatorUid = uint16(vm.envUint("VALIDATOR_UID"));
         bytes32 thisSs58PublicKey = vm.envBytes32("CONTRACT_SS58_KEY");
         uint16 netuid = uint16(vm.envUint("NETUID"));
-
-        bytes32[] memory recipientColdkey = new bytes32[];
-
-        recipientColdkey = vm.envBytes32("RECIPIENT");
+        bytes32 recipientColdkey = vm.envBytes32("RECIPIENT");
 
         // Log configuration
         console.log("Deploying SaintDurbin with:");
@@ -28,7 +25,7 @@ contract DeploySaintDurbin is Script {
         console.log("Validator UID:", validatorUid);
         console.log("Contract SS58 Key:", vm.toString(thisSs58PublicKey));
         console.log("NetUID:", netuid);
-        console.log("Recipient:", recipientColdkey);
+        console.log("Recipient:", vm.toString(recipientColdkey));
 
         // Deploy the contract
         vm.startBroadcast();
@@ -41,7 +38,7 @@ contract DeploySaintDurbin is Script {
             validatorUid,
             thisSs58PublicKey,
             netuid,
-            recipientColdkey,
+            recipientColdkey
         );
 
         vm.stopBroadcast();

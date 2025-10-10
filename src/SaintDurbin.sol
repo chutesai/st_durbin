@@ -29,9 +29,6 @@ contract SaintDurbin {
     uint16 public immutable netuid;
     bool public ss58PublicKeySet; // Track if SS58 key has been set
 
-    // Total hotkey alpha
-    uint256 public totalHotkeyAlpha;
-
     // Recipient
     struct Recipient {
         bytes32 coldkey;
@@ -135,13 +132,14 @@ contract SaintDurbin {
         uint16 _validatorUid,
         bytes32 _thisSs58PublicKey,
         uint16 _netuid,
-        bytes32[] memory _recipientColdkey
+        bytes32 _recipientColdkey
     ) {
         if (_emergencyOperator == address(0)) revert InvalidAddress();
         if (_drainAddress == address(0)) revert InvalidAddress();
         if (_drainSs58Address == bytes32(0)) revert InvalidAddress();
         if (_validatorHotkey == bytes32(0)) revert InvalidHotkey();
         if (_thisSs58PublicKey == bytes32(0)) revert InvalidAddress();
+	if (_recipientColdkey == bytes32(0)) revert InvalidAddress();
 
         emergencyOperator = _emergencyOperator;
         drainSs58Address = _drainSs58Address;
@@ -159,7 +157,6 @@ contract SaintDurbin {
         lastTransferBlock = block.number;
 
         // Set recipient.
-        if (_recipientColdkey == bytes32(0)) revert InvalidAddress();
         recipient = Recipient({coldkey: _recipientColdkey});
 
         // Principal on creation is set to zero, you must manually set the principal amount after deployment.
@@ -278,7 +275,7 @@ contract SaintDurbin {
         lastTransferBlock = block.number;
         lastPaymentAmount = availableYield;
 
-        emit StakeTransferred(totalTransferred, newBalance);
+        emit StakeTransferred(availableYield, newBalance);
     }
 
     /**
@@ -612,11 +609,11 @@ contract SaintDurbin {
      * @notice Internal helper to get emission
      */
     function _getEmission(
-        uint256 netuid,
+        uint256 inetuid,
         uint256 uid
     ) internal view returns (uint256) {
         (bool success, bytes memory returnData) = address(metagraph).staticcall(
-            abi.encodeWithSelector(IMetagraph.getEmission.selector, netuid, uid)
+            abi.encodeWithSelector(IMetagraph.getEmission.selector, inetuid, uid)
         );
         require(success, "Precompile call failed: getEmission");
         uint64 result = abi.decode(returnData, (uint64));
@@ -686,12 +683,11 @@ contract SaintDurbin {
 
     /**
      * @notice Get recipient details by index
-     * @param index The recipient index
      * @return coldkey The recipient's coldkey
      */
     function getRecipient() external view returns (bytes32 coldkey) {
-        Recipient memory recipient = recipient;
-        return (recipient.coldkey);
+        Recipient memory srecipient = recipient;
+        return (srecipient.coldkey);
     }
 
     /**
