@@ -240,7 +240,6 @@ contract SaintDurbin {
 
         if (availableYield < EXISTENTIAL_AMOUNT) {
             lastTransferBlock = block.number;
-            principalLocked = currentBalance;
             lastPaymentAmount = 0;
             return;
         }
