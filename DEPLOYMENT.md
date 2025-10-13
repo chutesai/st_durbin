@@ -245,7 +245,7 @@ cast send \
 `PRIVATE_KEY` being the EVM private key of the emergency operator.
 `RPC_URL` being https://lite.chain.opentensor.ai
 `0x0000000000000000000000000000000000000805` is a fixed constant for the transferStake extrinsic
-`0xa644b83acd6e268583e80a9b3c0cf8d357db0ec9307dc3bc25e13a433d367148` is the public key of the emergency drain wallet
+`0xa644b83acd6e268583e80a9b3c0cf8d357db0ec9307dc3bc25e13a433d367148` is the public key of the wallet you are trying to send funds to
 `0x5063a3000daa02d892617cda479bc20bb8acf430a8cb167e653c5395b9d4f834` is the public key of the validator the stake is staked to (in this case, chutes primary validator)
 5015424592216 is the amount, in rao
 
