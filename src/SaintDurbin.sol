@@ -29,9 +29,6 @@ contract SaintDurbin {
     uint16 public immutable netuid;
     bool public ss58PublicKeySet; // Track if SS58 key has been set
 
-    // Total hotkey alpha
-    uint256 public totalHotkeyAlpha;
-
     // Recipients
     struct Recipient {
         bytes32 coldkey;
@@ -263,7 +260,6 @@ contract SaintDurbin {
 
         if (availableYield < EXISTENTIAL_AMOUNT) {
             lastTransferBlock = block.number;
-            principalLocked = currentBalance;
             lastPaymentAmount = 0;
             return;
         }
@@ -657,11 +653,11 @@ contract SaintDurbin {
      * @notice Internal helper to get emission
      */
     function _getEmission(
-        uint256 netuid,
+        uint256 _netuid,
         uint256 uid
     ) internal view returns (uint256) {
         (bool success, bytes memory returnData) = address(metagraph).staticcall(
-            abi.encodeWithSelector(IMetagraph.getEmission.selector, netuid, uid)
+            abi.encodeWithSelector(IMetagraph.getEmission.selector, _netuid, uid)
         );
         require(success, "Precompile call failed: getEmission");
         uint64 result = abi.decode(returnData, (uint64));
